@@ -16,10 +16,10 @@
 
 ## 📋 Firmware Overview
 
-| Firmware File      | Description                                                        |
-| :----------------- | :----------------------------------------------------------------- |
-| `firmware-xxx.uf2` | Includes LoRa transceiver, BLE connection, and all hardware test items. For BLE testing, download [nRF Connect](https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile) from Google Play. |
-| `gps_factory.uf2`  | Used to diagnose hardware issues and test GPS functionality.     |
+| Firmware File      | Description                                                                                                                                                                                                     |
+| :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `factory-xxx.uf2` | Includes LoRa transceiver, BLE connection, and all hardware test items. For BLE testing, download [nRF Connect](https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-mobile) from Google Play. |
+| `gps_factory.uf2`  | Used to diagnose hardware issues and test GPS functionality.                                                                                                                                                    |
 
 ---
 
@@ -30,11 +30,8 @@ firmware/
 ├── factory
 │   ├── SoftRF-firmware-v1.3-nRF52.uf2      # SoftRF factory pre-flashed version
 │   └── firmware-t-echo-inkhud-2.7.13.uf2   # Meshtastic factory pre-flashed version
-├── firmware-433M.uf2   # Factory test firmware 433MHz
-├── firmware-868M.uf2   # Factory test firmware 868MHz
-├── firmware-915M.uf2   # Factory test firmware 915MHz
-├── firmware-920M.uf2   # Factory test firmware 920MHz
-├── firmware-923M.uf2   # Factory test firmware 923MHz
+├── factory-debug.uf2   # Factory test firmware
+├── factory.uf2         # Factory debug test firmware
 ├── gps_factory.uf2     # GPS NMEA output firmware
 ```
 
