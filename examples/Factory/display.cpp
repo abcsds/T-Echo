@@ -60,7 +60,7 @@ void setupDisplay()
         /*MOSI*/ePaper_Mosi);
 
     display.epd2.selectSPI(*dispPort, SPISettings(4000000, MSBFIRST, SPI_MODE0));
-    display.init(); 
+    display.init();
     display.setRotation(3);
 
     display.setTextColor(GxEPD_BLACK);
@@ -75,6 +75,14 @@ void setupDisplay()
         uint16_t utx = ((display.width() - tbw) / 2) - tbx;
         display.setCursor(utx, display.height() / 2);
         display.print(title);
+
+        display.setFont(&FreeMono9pt7b);
+        String build = String(__DATE__);
+        display.getTextBounds(build.c_str(), 0, 0, &tbx, &tby, &tbw, &tbh);
+        utx = ((display.width() - tbw) / 2) - tbx;
+        display.setCursor(utx, display.height() / 2 + 30);
+        display.print(build);
+
     } while (display.nextPage());
     delay(3000);
 }
