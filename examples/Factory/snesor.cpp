@@ -326,10 +326,6 @@ bool setupRTC()
     pinMode(RTC_Int_Pin, INPUT);
     attachInterrupt(RTC_Int_Pin, rtcInterruptCb, FALLING);
 
-    Wire.begin();
-
-    // deviceProbe(Wire);
-
     if (!rtc.begin(Wire)) {
         Serial.println("RTC init failed !");
         isRtcOnline = false;
