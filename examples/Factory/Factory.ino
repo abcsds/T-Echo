@@ -497,26 +497,26 @@ void setup()
 
     setupDisplay();
 
+#ifdef DEBUG_MODE
+    display.setTextColor(GxEPD_BLACK);
+    display.setFont(&FreeMono9pt7b);
+    display.setFullWindow();
+    display.firstPage();
+    do {
+        display.fillScreen(GxEPD_WHITE);
+        const char *title = "Select the T-Echo port and open the serial monitor."
+                            "If the serial monitor has DTR option,check it."
+                            "Change the baud rate to 115200. T-Echo will continue.";
+        display.setCursor(2, 10);
+        display.print(title);
+    } while (display.nextPage());
 
-    // display.setTextColor(GxEPD_BLACK);
-    // display.setFont(&FreeMono9pt7b);
-    // display.setFullWindow();
-    // display.firstPage();
-    // do {
-    //     display.fillScreen(GxEPD_WHITE);
-    //     const char *title = "Select the T-Echo port and open the serial monitor."
-    //                         "If the serial monitor has DTR option,check it."
-    //                         "Change the baud rate to 115200. T-Echo will continue.";
-    //     display.setCursor(2, 10);
-    //     display.print(title);
-    // } while (display.nextPage());
-
-    // SerialMon.begin(MONITOR_SPEED);
-    // while (!SerialMon) {
-    //     digitalToggle(BlueLed_Pin);
-    //     delay(200);
-    // }
-
+    SerialMon.begin(MONITOR_SPEED);
+    while (!SerialMon) {
+        digitalToggle(BlueLed_Pin);
+        delay(200);
+    }
+#endif
 
     Wire.setPins(SDA_Pin, SCL_Pin);
     Wire.begin();
