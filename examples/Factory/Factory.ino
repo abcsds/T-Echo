@@ -462,31 +462,28 @@ void setup()
     pinMode(Power_Enable_Pin, OUTPUT);
     digitalWrite(Power_Enable_Pin, HIGH);
 
-    Wire.setPins(SDA_Pin, SCL_Pin);
-    Wire.begin();
+    pinMode(GreenLed_Pin, OUTPUT); digitalWrite(GreenLed_Pin, HIGH);
+    pinMode(RedLed_Pin, OUTPUT); digitalWrite(RedLed_Pin, HIGH);
+    pinMode(BlueLed_Pin, OUTPUT); digitalWrite(BlueLed_Pin, HIGH);
+
+    pinMode(ePaper_Backlight, OUTPUT);
+    digitalWrite(ePaper_Backlight, LOW);
+
+
+    digitalWrite(BlueLed_Pin, HIGH);
+
 
     ledHandler = xQueueCreate(1, 1);
     semHandle = xSemaphoreCreateMutex();
     xSemaphoreGive(semHandle);
 
-    SerialMon.begin(MONITOR_SPEED);
-    // while (!SerialMon);
-    SerialMon.println("Start\n");
-
-
-    deviceProbe(Wire);
+    // deviceProbe(Wire);
 
     // SensorWireHelper::dumpDevices(Wire);
     uint32_t reset_reason;
     sd_power_reset_reason_get(&reset_reason);
     SerialMon.print("sd_power_reset_reason_get:0x");
     SerialMon.println(reset_reason, HEX);
-
-
-
-    pinMode(GreenLed_Pin, OUTPUT);
-    pinMode(RedLed_Pin, OUTPUT);
-    pinMode(BlueLed_Pin, OUTPUT);
 
     // Button uses the built-in pull up register.
     pinMode(UserButton_Pin, INPUT_PULLUP);
@@ -498,38 +495,100 @@ void setup()
     buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
     // buttonConfig->setHeartBeatInterval(2000);
 
-    Serial.println("setupBLE...");
+    setupDisplay();
+
+
+    // display.setTextColor(GxEPD_BLACK);
+    // display.setFont(&FreeMono9pt7b);
+    // display.setFullWindow();
+    // display.firstPage();
+    // do {
+    //     display.fillScreen(GxEPD_WHITE);
+    //     const char *title = "Select the T-Echo port and open the serial monitor."
+    //                         "If the serial monitor has DTR option,check it."
+    //                         "Change the baud rate to 115200. T-Echo will continue.";
+    //     display.setCursor(2, 10);
+    //     display.print(title);
+    // } while (display.nextPage());
+
+    // SerialMon.begin(MONITOR_SPEED);
+    // while (!SerialMon) {
+    //     digitalToggle(BlueLed_Pin);
+    //     delay(200);
+    // }
+
+
+    Wire.setPins(SDA_Pin, SCL_Pin);
+    Wire.begin();
 
     setupBLE();
 
-    setupDisplay();
+    bool rlst = setupGPS();
+    Serial.print("setupGPS: ");
+    Serial.println(rlst ? "OK" : "FAIL");
+    devices_probe_mask |= rlst ? bit(1) : 0;
 
-    devices_probe_mask |= setupGPS() ? bit(1) : 0 ;
+    rlst = setupLoRa();
+    Serial.print("setupLoRa: ");
+    Serial.println(rlst ? "OK" : "FAIL");
+    devices_probe_mask |= rlst ? bit(2) : 0;
 
-    devices_probe_mask |= setupLoRa() ? bit(2) : 0;
+    rlst = setupFlash();
+    Serial.print("setupFlash: ");
+    Serial.println(rlst ? "OK" : "FAIL");
+    devices_probe_mask |= rlst ? bit(3) : 0;
 
-    devices_probe_mask |= setupFlash() ? bit(3) : 0;
+    Serial.print("setupRTC: ");
+    if (probeDevices(0x51)) {
+        rlst = setupRTC();
+    } else {
+        rlst = false;
+    }
+    Serial.println(rlst ? "OK" : "FAIL");
+    devices_probe_mask |= rlst ? bit(4) : 0;
 
-    devices_probe_mask |= setupRTC() ? bit(4) : 0;
 
-    devices_probe_mask |= setupSensor() ? bit(5) : 0;
+    Serial.print("setupSensor: ");
+    if (probeDevices(0x77)) {
+        rlst = setupSensor();
+    } else {
+        rlst = false;
+    }
+    Serial.println(rlst ? "OK" : "FAIL");
+    devices_probe_mask |= rlst ? bit(5) : 0;
 
-    devices_probe_mask |= setupInternalFileSystem() ? bit(6) : 0;
+    rlst = setupInternalFileSystem();
+    Serial.print("setupInternalFileSystem: ");
+    Serial.println(rlst ? "OK" : "FAIL");
+    devices_probe_mask |= rlst ? bit(6) : 0;
 
     // Check if the IMU chip exists
     if (probeDevices(0x68)) {
-        devices_probe_mask |= probeIMU20948() ? bit(7) : 0 ;
-        devices_probe_mask |= probeIMU9250() ? bit(8) : 0 ;
+        rlst = probeIMU20948();
+        Serial.print("probeIMU20948: ");
+        Serial.println(rlst ? "OK" : "FAIL");
+        devices_probe_mask |= rlst ? bit(7) : 0;
+
+        rlst = probeIMU9250();
+        Serial.print("probeIMU9250: ");
+        Serial.println(rlst ? "OK" : "FAIL");
+        devices_probe_mask |= rlst ? bit(8) : 0;
     }
 
     // Check if the BHI260 sensor is present
     if (probeDevices(0x28)) {
-        devices_probe_mask |= probeBHY260AP() ? bit(9) : 0;
+        rlst = probeBHY260AP();
+        Serial.print("probeBHY260AP: ");
+        Serial.println(rlst ? "OK" : "FAIL");
+        devices_probe_mask |= rlst ? bit(9) : 0;
 
         // Check if the DRV2605 vibration driver chip is present
         if (probeDevices(0x5A)) {
 
-            devices_probe_mask |= probeDRV2605() ? bit(10) : 0;
+            rlst = probeDRV2605();
+            Serial.print("probeDRV2605: ");
+            Serial.println(rlst ? "OK" : "FAIL");
+            devices_probe_mask |= rlst ? bit(10) : 0;
 
             // If the DRV2605 vibration chip exists, then it is a DRV2605 + buzzer combination
             setupBuzzer();
