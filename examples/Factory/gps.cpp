@@ -31,62 +31,46 @@ bool                    update_use_second = false;
   \_____| |_|      |_____/
 
 ************************************/
-
-#define GNSS_DISABLE_NMEA_OUTPUT "$PCAS03,0,0,0,0,0,0,0,0,0,0,,,0,0*02\r\n"
-#define GNSS_GET_VERSION         "$PCAS06,0*1B\r\n"
-
-bool waitResponse(String &data, String rsp, uint32_t timeout)
-{
-    uint32_t startMillis = millis();
-    do {
-        while (SerialGPS.available() > 0) {
-            int8_t ch = SerialGPS.read();
-            data += static_cast<char>(ch);
-            if (rsp.length() && data.endsWith(rsp)) {
-                return true;
-            }
-        }
-    } while (millis() - startMillis < 1000);
-    return false;
-}
-
-bool checkOutput()
-{
-    uint32_t startTimeout = millis() + 500;
-    while (SerialGPS.available()) {
-        int ch = SerialGPS.read();
-        Serial.write(ch);
-        if (millis() > startTimeout) {
-            SerialGPS.flush();
-            Serial.println("Wait L76K stop output timeout!");
-            return true;
-        }
-    };
-    SerialGPS.flush();
-    return false;
-}
-
 bool gnss_probe()
 {
-    uint8_t retry = 5;
-
-    while (retry--) {
-
-        SerialGPS.write(GNSS_DISABLE_NMEA_OUTPUT);
-        delay(5);
-        if (checkOutput()) {
-            Serial.println("GPS OUT PUT NOT DISABLE .");
-            delay(500);
-            continue;
+    static uint32_t rates[] = {9600, 19200, 38400, 57600, 115200, 4800};
+    const uint32_t readTimeoutMs = 2000;
+    for (uint8_t i = 0; i < sizeof(rates) / sizeof(rates[0]); i++) {
+        uint32_t rate = rates[i];
+        Serial.printf("Trying baud rate %u\n", rate);
+        SerialGPS.end(); delay(10);
+        SerialGPS.begin(rate);
+        delay(50);
+        SerialGPS.setTimeout(1);
+        uint32_t startTime = millis();
+        while (millis() - startTime < readTimeoutMs) {
+            if (SerialGPS.available()) {
+                String line = SerialGPS.readStringUntil('\n');
+                line.trim();
+                if (line.length() > 0 && line[0] == '$') {
+                    Serial.printf("GPS responded at rate %u: %s\n", rate, line.substring(0, 10).c_str());
+                    if (rate != 9600) {
+                        Serial.println("GPS Baud set to 9600");
+                        for (int i = 0; i < 3; i++) {
+                            SerialGPS.write("$PCAS01,1*1D\r\n");
+                            delay(100);
+                        }
+                        SerialGPS.end(); delay(10);
+                        SerialGPS.begin(9600);
+                        // Reset gps module
+                        SerialGPS.write("$PCAS10,3*1F\r\n");
+                    }
+                    gpsVersion = "L76K (9600)"; 
+                    return true;
+                }
+            }
+            delay(10);
         }
-        delay(200);
-        SerialGPS.write(GNSS_GET_VERSION);
-        if (waitResponse(gpsVersion, "$GPTXT,01,01,02", 1000)) {
-            Serial.println("L76K GNSS init succeeded, using L76K GNSS Module\n");
-            return true;
-        }
-        delay(500);
+        Serial.printf("No response at %u baud\n", rate);
     }
+    SerialGPS.end(); delay(10);
+    SerialGPS.begin(9600);
+    Serial.println("AutoBaud failed, default to 9600");
     return false;
 }
 
@@ -96,6 +80,7 @@ bool gps_probe()
     if (!gnss_probe()) {
         return false;
     }
+
     // Initialize the L76K Chip, use GPS + GLONASS
     SerialGPS.write("$PCAS04,5*1C\r\n");
     delay(250);
